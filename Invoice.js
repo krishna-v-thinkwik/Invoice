@@ -1,7 +1,7 @@
 const express = require("express");
 
 const app = express();
-const port = process.env.PORT || 3000; // Render assigns a dynamic port
+const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
@@ -15,11 +15,11 @@ app.post("/amounts", (req, res) => {
         return res.status(400).json({ error: "Invalid 'amounts'. Provide a non-empty array." });
     }
 
-    storedAmounts = amounts; // Store amounts
+    storedAmounts = amounts;
     res.json({ message: "Amounts received successfully", amounts: storedAmounts });
 });
 
-// Endpoint to receive orders separately
+// Endpoint to receive orders
 app.post("/parse-order", (req, res) => {
     console.log("Received order request:", req.body);
 
@@ -36,35 +36,34 @@ app.post("/parse-order", (req, res) => {
 
     console.log("✅ Stored amounts:", storedAmounts);
 
-    const orderItems = order.split(/\s*and\s*/);
+    // Correct split on actual separators only (not within words like 'Tandoori')
+    const orderItems = order.split(/\b(?:and|\+|,)\b/i);
     console.log("✅ Extracted order items:", orderItems);
 
     const items = orderItems.map((item, index) => {
-        console.log(`🔎 Processing item: ${item}`);
+        const trimmedItem = item.trim();
+        console.log(`🔎 Processing item: "${trimmedItem}"`);
 
-        // Adjust regex based on input format
-        const match = item.match(/(\d+)\s(.+)/);
+        const match = trimmedItem.match(/^(\d+)\s+(.+)$/);
         console.log("🔎 Match result:", match);
 
         if (!match) {
-            console.log("❌ Match failed for:", item);
+            console.log("❌ Match failed for:", trimmedItem);
             return null;
         }
 
         return {
             name: match[2].trim(),
             currency: "USD",
-            amount: storedAmounts[index] || 0, // Assign stored amount dynamically
+            amount: storedAmounts[index] || 0,
             qty: parseInt(match[1], 10)
         };
-    }).filter(Boolean); // Remove null values if any match fails
+    }).filter(Boolean);
 
     console.log("✅ Final parsed items:", items);
     res.json(items);
 });
 
-
-// Start the server
 app.listen(port, "0.0.0.0", () => {
-    console.log(`Server running on port ${port}`);
+    console.log(`🚀 Server running on port ${port}`);
 });
